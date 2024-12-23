@@ -6,6 +6,9 @@
         <use xlink:href="#icon-dingwei"></use>
       </svg>
     </div>
+    <div class="filePath">
+      {{ filePath }}
+    </div>
     <div class="mousePos">
       {{ `X:${mousepos.x ? mousepos.x : 0} Y:${mousepos.y ? mousepos.y : 0}` }}
     </div>
@@ -23,6 +26,7 @@ import { useSymbolStore } from '../store'
 const route = useRoute()
 // 引用 Canvas 元素
 const canvas = ref<HTMLCanvasElement | null>(null)
+const filePath = ref()
 let ctx: CanvasRenderingContext2D | null = null
 // 网格配置
 let gridSize = 20 // 初始网格尺寸
@@ -45,7 +49,6 @@ let currentSymbol
 let originPoint = { x: 0, y: 0, radius: 4 }
 let isDragging = false
 let currentSnapPoint = null
-let diagramObject: Array<{}>
 // const rect  = new Rect(centerX, centerY, 40, 40, {offsetX:0,offsetY:-30,content:"nihao",show:true}, [{ id:undefined, from_offsetX: 20, from_offsetY: 0, to_offsetX: 40, to_offsetY: 0, connectedId: undefined }])
 
 let isFetchingSymbol = false;
@@ -89,8 +92,15 @@ onMounted(() => {
       })
 
       window.api.openFile((data)=>{
-        createDiagramFromFile(JSON.parse(data))
+        if(data!='{}'){
+          createDiagramFromFile(JSON.parse(data))
+        }
         draw()
+      })
+
+
+      window.api.getFilePath((data)=>{
+        filePath.value = data
       })
 
       window.addEventListener('keydown', (e) => {
@@ -449,6 +459,14 @@ function draw() {
 </script>
   
 <style scoped lang="scss">
+
+.filePath{
+  position: absolute;
+  left: 1%;
+  bottom: 1%;
+  font-size: 12px;
+}
+
 .symbol {
   width: 35%;
   height: 88%;
@@ -459,6 +477,7 @@ function draw() {
   background-color: white;
   z-index: 1000;
 }
+
 .posBtn {
   position: fixed;
   right: 1%;

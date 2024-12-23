@@ -27,6 +27,9 @@ const api = {
       callback(data.data)
     }
   }),
+  getFilePath:(callback)=>ipcRenderer.on("getFilePath",(_,data)=>{
+    callback(data)
+  }),
   getSymbol:(libraryLabel,symbolLabel)=>{
     return new Promise((resolve,reject)=>{
       ipcRenderer.send("getSymbol",libraryLabel,symbolLabel)

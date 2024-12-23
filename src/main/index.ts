@@ -102,6 +102,11 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  const userDataPath = app.getPath('userData');
+  const diagramPath = path.join(userDataPath, 'diagram');
+
+  mainWindow.webContents.send("getFilePath", path.join(userDataPath,diagramPath));
+
   async function createFile() {
     try {
       // 确保userData路径下的diagram目录存在
@@ -120,11 +125,12 @@ function createWindow(): void {
       }
   
       // 在用户选择的路径创建一个空文件
-      await fs.promises.writeFile(filePath, '', 'utf8'); // 写入空内容
+      await fs.promises.writeFile(filePath, '{}', 'utf8'); // 写入空内容
   
       // 发送文件名到渲染进程
       diagramFilePath = filePath;
       mainWindow.webContents.send("createFile", filePath); // 传递文件路径给渲染进程
+      mainWindow.webContents.send("getFilePath", filePath); //
   
       // 显示成功消息
       dialog.showMessageBox(mainWindow, { message: 'File created successfully.' });
@@ -181,6 +187,7 @@ function createWindow(): void {
       }
       if (filePath) {
         diagramFilePath = filePath; // 更新savePath为用户选择的路径
+        mainWindow.webContents.send("getFilePath", filePath);
       }
     }
   
@@ -222,6 +229,7 @@ function createWindow(): void {
           } else {
             diagramFilePath = filePath
             mainWindow.webContents.send('openFile', {success:true,data:data});
+            mainWindow.webContents.send("getFilePath", filePath);
             dialog.showMessageBox(mainWindow, { message: 'File open successfully.' });
           }
         });

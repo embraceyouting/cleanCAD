@@ -75,11 +75,13 @@
 import { ref, computed, onMounted, watch ,defineEmits } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSymbolStore } from '../store'
-import axios from 'axios'
+import { Component,Diagram,Text } from "../class/index"
 const router = useRouter()
 const canvas = ref()
 const canvasDiv = ref()
 let ctx: CanvasRenderingContext2D | null = null
+let diagram 
+let component
 
 onMounted(async() => {
   const menuData = await window.api.getSymbolLibrary()
@@ -88,6 +90,7 @@ onMounted(async() => {
     ctx = canvas.value.getContext('2d')
     canvas.value.width = canvasDiv.value.clientWidth
     canvas.value.height = canvasDiv.value.clientHeight
+    diagram = new Diagram(ctx)
   }
 })
 
@@ -185,10 +188,29 @@ const toggleMenu = (index: number) => {
 }
 
 // 切换子项
-const toggleItem = (item, name: string) => {
+const toggleItem = async (item, name: string) => {
   chooseItem.value = name
   chooseMenu.value = item.label
-  draw(chooseItem.value)
+  if (searchQuery.value) {
+    searchQuery.value = ''
+  }
+  const data = await window.api.getSymbol(item.label, name)
+  const componentData = JSON.parse(data)
+  if(JSON.stringify(componentData) == "{}"){
+    component = new Component(canvas.value.width/2,canvas.value.height/2)
+    diagram.addComponent(component)
+    draw()
+  }else{
+    if (component) {
+      diagram.removeComponent(component)
+    }
+    createComponentFromFile(componentData).then((data)=>{
+      component = data
+      diagram.addComponent(component)
+      draw()
+    })
+  }
+  draw()
 }
 
 const emit = defineEmits(["placeItem"])
@@ -201,17 +223,43 @@ const dbtoggleItem = (libraryName:string,symbolName: string) => {
   emit("placeItem",libraryName,symbolName)
 }
 
-const draw = async (name: string) => {
-  console.log(canvas.value.width, canvas.value.height)
-  ctx.clearRect(0, 0, canvas.value.width, canvas.value.height)
-  ctx.beginPath()
-  ctx.closePath()
+const draw = async () => {
+  ctx.clearRect(0, 0, canvas.value.width, canvas.value.height);
+  (() => {
+    ctx.save()
+    diagram.render()
+    ctx.restore()
+  })()
 }
+
+async function createComponentFromFile(componentData) {
+  let { toolTip, pins, symbols } = componentData;
+  // 创建symbols数组，并等待所有Promise解决
+  const symbolInstances = await Promise.all(symbols.map(async (symbol) => {
+    const moduleExports = await import('../class/index');
+    const BasicSymbol = moduleExports[symbol.type];
+    const currentBasicSymbolInstance = new BasicSymbol(
+      symbol.from_offsetX,
+      symbol.from_offsetY,
+      symbol.to_offsetX,
+      symbol.to_offsetY
+    );
+    return currentBasicSymbolInstance;
+  }));
+  // 创建Component实例
+  toolTip = new Text(toolTip.offsetX, toolTip.offsetY,toolTip.show,toolTip.content)
+  const component = new Component(canvas.value.width/2, canvas.value.height/2, toolTip, pins, symbolInstances);
+  return component;
+}
+
 
 window.addEventListener('resize', () => {
   canvas.value.width = canvasDiv.value.clientWidth
   canvas.value.height = canvasDiv.value.clientHeight
-  draw(chooseItem.value)
+  if(component){
+    component.changePos(canvas.value.width/2,canvas.value.height/2)
+  }
+  draw()
 })
 
 const closeSymbol = () => {
