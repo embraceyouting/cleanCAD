@@ -297,16 +297,22 @@ main {
     text-overflow: ellipsis;
 
     .serch {
-      width: 100%;
       display: flex;
-      justify-content: center;
       align-items: center;
-      padding: 5px 0;
+    }
 
-      input {
-        width: 90%;
-        outline: none;
-      }
+    .serch input[type="text"] {
+      width: 100%;
+      height: 30px;
+      padding: 0 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      transition: border 0.3s ease-in-out;
+    }
+
+    .serch input[type="text"]:focus {
+      border-color: #007bff;
     }
     
   }
@@ -316,31 +322,37 @@ main {
     height: 100%;
     display: flex;
     flex-direction: column;
+    background-color: #f8f9fa; /* 为.rightPart添加一个背景颜色 */
 
-    .canvasDiv {
-      flex: 1;
-      background-color: #dee2e6;
-    }
+  .canvasDiv {
+    flex: 1;
+    background-color: #ffffff;
+    border: 1px solid #ccc; /* 为canvasDiv添加一个边框 */
+    border-radius: 4px; /* 为canvasDiv添加圆角 */
+    overflow: hidden; /* 如果canvas内容超出，隐藏超出部分 */
+  }
 
-    .infos {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+  .infos {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 
-      .info {
-        justify-self: center; /* 水平居中 */
-        align-self: center; /* 垂直居中 */
-        input {
-          width: 50px;
-          border: none;
-          outline: none;
-          border-bottom: 1px solid #1c4f81;
-          text-align: center;
-        }
+
+    .info {
+      justify-self: center; /* 水平居中 */
+      align-self: center; /* 垂直居中 */
+      input {
+        width: 50px;
+        border: none;
+        outline: none;
+        border-bottom: 1px solid #1c4f81;
+        text-align: center;
+        font-size: 14px; /* 设置字体大小 */
       }
     }
   }
+}
 
   .menuList {
     width: 100%;
