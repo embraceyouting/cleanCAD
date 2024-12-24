@@ -1,7 +1,7 @@
 <template>
   <div>
     <canvas ref="canvas"> </canvas>
-    <div class="posBtn">
+    <div class="posBtn" ref="posBtn">
       <svg @click="goToPoint" class="icon" aria-hidden="true">
         <use xlink:href="#icon-dingwei"></use>
       </svg>
@@ -9,21 +9,28 @@
     <div class="filePath">
       {{ filePath }}
     </div>
-    <div class="mousePos">
+    <div class="mousePos" ref="mousePos">
       {{ `X:${mousepos.x ? mousepos.x : 0} Y:${mousepos.y ? mousepos.y : 0}` }}
     </div>
     <div class="symbol" v-if="route.fullPath == '/page/addSymbol'">
       <router-view></router-view>
     </div>
+    <!-- <div class="symbol">
+      <addSymbol></addSymbol>
+    </div> -->
   </div>
 </template>
   
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted , watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Diagram, Rect , Component , Text } from '../class'
 import { useSymbolStore } from '../store'
+import createComponentFromFile from "../utils/createComponentFromFile"
+import addSymbol from '../components/addSymbol.vue'
 const route = useRoute()
+const posBtn = ref()
+const mousePos = ref()
 // 引用 Canvas 元素
 const canvas = ref<HTMLCanvasElement | null>(null)
 const filePath = ref()
@@ -69,19 +76,16 @@ function goToPoint() {
   draw()
 }
 
-// 获取 Canvas 上下文
 onMounted(() => {
   if (canvas.value) {
     ctx = canvas.value.getContext('2d')
     diagram = new Diagram(ctx)
-    // diagram.addComponent(rect)
     if (ctx) {
       canvas.value.width = window.innerWidth
       canvas.value.height = window.innerHeight
 
-      draw() // 初始绘制
+      draw() 
 
-      // 绑定鼠标事件
       const canvasElement = canvas.value
 
       window.api.saveFile(()=>{return JSON.stringify(diagram)})
@@ -271,6 +275,16 @@ onMounted(() => {
   }
 })
 
+watch(route,(newval)=>{
+  if(newval.fullPath == "/page/addSymbol"){
+    posBtn.value.style.right = "31%";
+    mousePos.value.style.left = "35%";
+  }else{
+    posBtn.value.style.right = "1%";
+    mousePos.value.style.left = "50%";
+  }
+})
+
 
 async function createDiagramFromFile(componentsData) {
   // 创建一个数组来存储所有的组件实例
@@ -308,27 +322,6 @@ async function createDiagramFromFile(componentsData) {
 
   // 返回所有组件实例的数组
   return diagram;
-}
-
-
-async function createComponentFromFile(componentData) {
-  let { centerX, centerY, toolTip, pins, symbols } = componentData;
-  // 创建symbols数组，并等待所有Promise解决
-  const symbolInstances = await Promise.all(symbols.map(async (symbol) => {
-    const moduleExports = await import('../class/index');
-    const BasicSymbol = moduleExports[symbol.type];
-    const currentBasicSymbolInstance = new BasicSymbol(
-      symbol.from_offsetX,
-      symbol.from_offsetY,
-      symbol.to_offsetX,
-      symbol.to_offsetY
-    );
-    return currentBasicSymbolInstance;
-  }));
-  // 创建Component实例
-  toolTip = new Text(toolTip.offsetX, toolTip.offsetY,toolTip.show,toolTip.content)
-  const component = new Component(centerX, centerY, toolTip, pins, symbolInstances);
-  return component;
 }
 
 // 绘制网格
@@ -468,11 +461,11 @@ function draw() {
 }
 
 .symbol {
-  width: 35%;
-  height: 88%;
+  width: 30%;
+  height: 100%;
   position: absolute;
   right: 0%;
-  top: 5%;
+  top: 0%;
   border: 1px solid rgb(185, 185, 185);
   background-color: white;
   z-index: 1000;
@@ -496,5 +489,6 @@ function draw() {
   transform: translate(-50%, 0);
   left: 50%;
   bottom: 1%;
+  font-size: 12px;
 }
 </style>

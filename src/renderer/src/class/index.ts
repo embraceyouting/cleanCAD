@@ -74,6 +74,10 @@ class Diagram {
     })
   }
 
+  reSetPinId(){
+    this.#pinId = 1
+  }
+
   // Helper functions
   isPointInComponent(mouseX: number, mouseY: number, component: ComponentType): boolean {
     const x = mouseX - component.centerX;
@@ -203,18 +207,27 @@ class Component implements ComponentType {
           bitY = 2
         }
       }
-      ctx.moveTo(this.centerX + pin.from_offsetX, this.centerY + pin.from_offsetY);
-      ctx.lineTo(this.centerX + pin.to_offsetX + bitX, this.centerY + pin.to_offsetY + bitY);
-      ctx.stroke();
-      ctx.beginPath()
-      ctx.arc(this.centerX + pin.to_offsetX, this.centerY + pin.to_offsetY, 2, 0, Math.PI * 2)
+      ctx.font = '10px Arial';
+      
+      if(!pin.connectedId){
+        ctx.moveTo(this.centerX + pin.from_offsetX, this.centerY + pin.from_offsetY);
+        ctx.lineTo(this.centerX + pin.to_offsetX + bitX, this.centerY + pin.to_offsetY + bitY);
+        ctx.stroke();
+        ctx.beginPath()
+        ctx.arc(this.centerX + pin.to_offsetX, this.centerY + pin.to_offsetY, 2, 0, Math.PI * 2)
+        ctx.fillText(pin.id!.toString(), this.centerX+pin.to_offsetX-3, this.centerY+pin.to_offsetY-8);
+      }else{
+        ctx.moveTo(this.centerX + pin.from_offsetX, this.centerY + pin.from_offsetY);
+        ctx.lineTo(this.centerX + pin.to_offsetX, this.centerY + pin.to_offsetY);
+        ctx.stroke();
+      }
       ctx.stroke();
     });
 
     if(this.toolTip){
       this.toolTip.draw(this.centerX,this.centerY,ctx)
     }
-
+    
   }
 
   addToolTip(toolTip:BasicSymbol){

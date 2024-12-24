@@ -51,6 +51,9 @@
         <svg class="iconNav" ref="addText" name="Text" aria-hidden="true">
           <use xlink:href="#icon-tianjiawenzi"></use>
         </svg>
+        <svg class="iconNav" ref="addCircle" name="Circle" aria-hidden="true">
+          <use xlink:href="#icon-yuanhu"></use>
+        </svg>
       </div>
       <div class="canvasDiv" ref="canvasDiv">
         <canvas ref="canvas"></canvas>
@@ -70,6 +73,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Diagram, Component , Text } from '../class'
+import createComponentFromFile from "../utils/createComponentFromFile"
 
 const canvas = ref(null)
 const canvasDiv = ref(null)
@@ -146,7 +150,14 @@ onMounted(async () => {
       }
     })
 
-    window.api.saveLibrary(()=>{return JSON.stringify(menu.value)},()=>{return JSON.stringify({libraryName:menu.value[currentChooseMenuIndex.value].label,symbolName:chooseItem.value,content:component.value})})
+    window.api.saveLibrary(
+      ()=>{
+        return JSON.stringify(menu.value)
+      },
+      ()=>{
+        return JSON.stringify({libraryName:menu.value[currentChooseMenuIndex.value].label,symbolName:chooseItem.value,content:component.value})
+      }
+    )
 
     addPinIcon.value.addEventListener('click', () => {
       isAddPin = true
@@ -276,6 +287,7 @@ onMounted(async () => {
           } else if (addLineArray.length == 1 &&(addLineArray[0].x != snappedX || addLineArray[0].y != snappedY)) {
             addLineArray.push({ x: snappedX - centerX, y: snappedY - centerY })
             currentBasicSymbol.preview(addLineArray[1].x, addLineArray[1].y)
+            console.log(component.value)
             addLineArray = []
             isFindToPos = false
             currentBasicSymbol = null
@@ -554,6 +566,12 @@ const toggleItem = (item, label,index) => {
 }
 
 const dbtoggleItem = async (libraryLabel,symbolLabel) => {
+  diagram.reSetPinId()
+  isAddLine = false
+  isAddPin = false
+  isAddText = false
+  addPinArray = []
+  addLineArray = []
   if (searchQuery.value) {
     searchQuery.value = ''
   }
@@ -577,27 +595,6 @@ const dbtoggleItem = async (libraryLabel,symbolLabel) => {
     })
   }
   draw()
-}
-
-
-async function createComponentFromFile(componentData) {
-  let { centerX, centerY, toolTip, pins, symbols } = componentData;
-  // 创建symbols数组，并等待所有Promise解决
-  const symbolInstances = await Promise.all(symbols.map(async (symbol) => {
-    const moduleExports = await import('../class/index');
-    const BasicSymbol = moduleExports[symbol.type];
-    const currentBasicSymbolInstance = new BasicSymbol(
-      symbol.from_offsetX,
-      symbol.from_offsetY,
-      symbol.to_offsetX,
-      symbol.to_offsetY
-    );
-    return currentBasicSymbolInstance;
-  }));
-  // 创建Component实例
-  toolTip = new Text(toolTip.offsetX, toolTip.offsetY,toolTip.show,toolTip.content)
-  const component = new Component(centerX, centerY, toolTip, pins, symbolInstances);
-  return component;
 }
 
 function goToPoint() {

@@ -2,7 +2,7 @@
   <main>
     <div class="leftMenu">
       <!-- 搜索框 -->
-      <div class="serch">
+      <div class="search">
         <input type="text" v-model="searchQuery" placeholder="搜索符号库" />
       </div>
       <!-- 菜单列表 -->
@@ -36,31 +36,7 @@
         <canvas ref="canvas"></canvas>
       </div>
       <div class="infos">
-        <template v-if="symbolInfos">
-          <div class="type">
-            <span>{{ 'type' }}</span>
-            <span>:</span>
-            <span>{{ useSymbolStore().$state.currentComponent&&useSymbolStore().$state.currentComponent.type }}</span>
-          </div>
-          <div
-            class="info"
-            v-for="(value, key) in symbolInfos"
-            :key="key"
-            v-show="typeof value != 'object'"
-          >
-            <span>{{ key }}</span>
-            <span>:</span>
-            <input v-model="symbolInfos[key]"/>
-          </div>
-          <!-- <div class="tooltip">
-            <span>{{ 'tooltip' }}</span>
-          </div> -->
-          <!-- <div class="info" v-for="(value, key) in symbolInfos.toolTip" :key="key">
-            <span>{{ key }}</span>
-            <span>:</span>
-            <input v-model="symbolInfos.toolTip[key]" />
-          </div> -->
-        </template>
+        
       </div>
     </div>
     <div @click="closeSymbol" class="closeSymbol">
@@ -76,6 +52,8 @@ import { ref, computed, onMounted, watch ,defineEmits } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSymbolStore } from '../store'
 import { Component,Diagram,Text } from "../class/index"
+// import createComponentFromFile from "../utils/createComponentFromFile"
+
 const router = useRouter()
 const canvas = ref()
 const canvasDiv = ref()
@@ -90,6 +68,7 @@ onMounted(async() => {
     ctx = canvas.value.getContext('2d')
     canvas.value.width = canvasDiv.value.clientWidth
     canvas.value.height = canvasDiv.value.clientHeight
+    console.log(canvas.value.width, canvas.value.height)
     diagram = new Diagram(ctx)
   }
 })
@@ -120,18 +99,7 @@ let symbolInfos = computed(()=>{
 })
 
 // 初始化菜单数据
-const menu = ref([
-  {
-    label: '符号库1',
-    isOpen: false, // 是否展开
-    children: [{ label: 'rect' }, { label: 'triangle' }]
-  },
-  {
-    label: '符号库2',
-    isOpen: false, // 是否展开
-    children: [{ label: 'object3' }, { label: 'object4' }]
-  }
-])
+const menu = ref([])
 
 // 搜索框的输入值
 const searchQuery = ref('')
@@ -172,7 +140,6 @@ const filteredMenu = computed(() => {
     .filter(Boolean) // 过滤掉未返回的项
 })
 
-
 // 切换菜单展开和收起
 const toggleMenu = (index: number) => {
   // 关闭其他菜单
@@ -189,6 +156,7 @@ const toggleMenu = (index: number) => {
 
 // 切换子项
 const toggleItem = async (item, name: string) => {
+  diagram.reSetPinId()
   chooseItem.value = name
   chooseMenu.value = item.label
   if (searchQuery.value) {
@@ -196,14 +164,15 @@ const toggleItem = async (item, name: string) => {
   }
   const data = await window.api.getSymbol(item.label, name)
   const componentData = JSON.parse(data)
+  console.log(componentData)
+  if (component) {
+    diagram.removeComponent(component)
+  }
   if(JSON.stringify(componentData) == "{}"){
     component = new Component(canvas.value.width/2,canvas.value.height/2)
     diagram.addComponent(component)
     draw()
   }else{
-    if (component) {
-      diagram.removeComponent(component)
-    }
     createComponentFromFile(componentData).then((data)=>{
       component = data
       diagram.addComponent(component)
@@ -233,25 +202,29 @@ const draw = async () => {
 }
 
 async function createComponentFromFile(componentData) {
-  let { toolTip, pins, symbols } = componentData;
-  // 创建symbols数组，并等待所有Promise解决
-  const symbolInstances = await Promise.all(symbols.map(async (symbol) => {
-    const moduleExports = await import('../class/index');
-    const BasicSymbol = moduleExports[symbol.type];
-    const currentBasicSymbolInstance = new BasicSymbol(
-      symbol.from_offsetX,
-      symbol.from_offsetY,
-      symbol.to_offsetX,
-      symbol.to_offsetY
-    );
-    return currentBasicSymbolInstance;
-  }));
-  // 创建Component实例
-  toolTip = new Text(toolTip.offsetX, toolTip.offsetY,toolTip.show,toolTip.content)
-  const component = new Component(canvas.value.width/2, canvas.value.height/2, toolTip, pins, symbolInstances);
-  return component;
+    let { centerX, centerY, toolTip, pins, symbols } = componentData;
+    // 创建symbols数组，并等待所有Promise解决
+    const symbolInstances = await Promise.all(symbols.map(async (symbol) => {
+        const moduleExports = await import('../class/index');
+        const BasicSymbol = moduleExports[symbol.type];
+        const currentBasicSymbolInstance = new BasicSymbol(
+        symbol.from_offsetX,
+        symbol.from_offsetY,
+        symbol.to_offsetX,
+        symbol.to_offsetY
+        );
+        return currentBasicSymbolInstance;
+    }));
+    // 创建Component实例
+    let component
+    if(toolTip){
+        toolTip = new Text(toolTip.offsetX, toolTip.offsetY,toolTip.show,toolTip.content)
+        component = new Component(canvas.value.width/2,canvas.value.height/2, toolTip, pins, symbolInstances);
+    }else{
+        component = new Component(canvas.value.width/2,canvas.value.height/2, undefined, pins, symbolInstances);
+    }
+    return component;
 }
-
 
 window.addEventListener('resize', () => {
   canvas.value.width = canvasDiv.value.clientWidth
@@ -296,12 +269,12 @@ main {
     white-space: nowrap;
     text-overflow: ellipsis;
 
-    .serch {
+    .search {
       display: flex;
       align-items: center;
     }
 
-    .serch input[type="text"] {
+    .search input[type="text"] {
       width: 100%;
       height: 30px;
       padding: 0 10px;
@@ -311,7 +284,7 @@ main {
       transition: border 0.3s ease-in-out;
     }
 
-    .serch input[type="text"]:focus {
+    .search input[type="text"]:focus {
       border-color: #007bff;
     }
     
@@ -328,30 +301,16 @@ main {
     flex: 1;
     background-color: #ffffff;
     border: 1px solid #ccc; /* 为canvasDiv添加一个边框 */
-    border-radius: 4px; /* 为canvasDiv添加圆角 */
     overflow: hidden; /* 如果canvas内容超出，隐藏超出部分 */
   }
 
   .infos {
-    flex: 1;
     display: flex;
+    flex: 1;
     flex-direction: column;
-    align-items: center;
-
-
-    .info {
-      justify-self: center; /* 水平居中 */
-      align-self: center; /* 垂直居中 */
-      input {
-        width: 50px;
-        border: none;
-        outline: none;
-        border-bottom: 1px solid #1c4f81;
-        text-align: center;
-        font-size: 14px; /* 设置字体大小 */
-      }
-    }
+    column-gap: 5px;
   }
+  
 }
 
   .menuList {
